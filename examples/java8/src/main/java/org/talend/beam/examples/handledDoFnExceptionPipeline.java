@@ -39,84 +39,44 @@ import java.util.List;
 
 import static org.apache.beam.sdk.transforms.MapElements.via;
 
-
 /**
- * An example that counts words in Shakespeare.
- * <p>
- * <p>This class, {@link handledDoFnExceptionPipeline}, is the first in a series of four successively more
- * detailed 'word count' examples. Here, for simplicity, we don't show any error-checking or
- * argument processing, and focus on construction of the pipeline, which chains together the
- * application of core transforms.
- * <p>
- * <p>Next, see the {@link WordCount} pipeline, then the {@link DebuggingWordCount}, and finally the
- * {@link WindowedWordCount} pipeline, for more detailed examples that introduce additional
- * concepts.
- * <p>
- * <p>Concepts:
- * <p>
- * <pre>
- *   1. Reading data from text files
- *   2. Specifying 'inline' transforms
- *   3. Counting items in a PCollection
- *   4. Writing data to text files
- * </pre>
- * <p>
- * <p>No arguments are required to run this pipeline. It will be executed with the DirectRunner. You
- * can see the results in the output files in your current working directory, with names like
- * "wordcounts-00001-of-00005. When running on a distributed service, you would use an appropriate
- * file service.
- */
+* Simple pipeline with handled exception from DoFn
+*/
 public class handledDoFnExceptionPipeline {
 
     public static void main(String[] args) {
-        // Create a PipelineOptions object. This object lets us set various execution
-        // options for our pipeline, such as the runner you wish to use. This example
-        // will run with the DirectRunner by default, based on the class path configured
-        // in its dependencies.
-        PipelineOptions options = PipelineOptionsFactory.create();
 
-        // Create the Pipeline object with the options we defined above.
+        // Pipeline creation
+        PipelineOptions options = PipelineOptionsFactory.create();
         Pipeline p = Pipeline.create(options);
 
+        // Sample input data
         final List<String> LINES = Arrays.asList(
                 "To be, or not to be: that is the EXCEPTION question: ",
                 "Whether 'tis nobler in the mind to suffer ",
                 "The slings and arrows of outrageous fortune, ",
                 "Or to take arms against a sea of troubles, ");
 
+        // DoFn which raise exception when reading EXCEPTION word
         ExceptionHandlerDoFn<String, String> exceptionHandlerDoFn = new ExceptionHandlerDoFn<String, String>(new DoFnRaisingException());
 
-        // Create a PCollection from in-memory data
+        // Apply the DoFn on the sample data with 2 outputs : one for the good words and one for the bad words (when exception raised)
         PCollectionTuple results = p.apply("Create", Create.of(LINES)).setCoder(StringUtf8Coder.of())
-
-                // Apply a user defined DoFn extracting words and raising exceptions
                 .apply("ExtractWords", ParDo.of(new ExceptionHandlerDoFn<String, String>(new DoFnRaisingException()))
                         .withOutputTags(exceptionHandlerDoFn.mainOutput, TupleTagList.of(exceptionHandlerDoFn.errorOutput)));
 
-        // Apply the Count transform to the mainOutput PCollection of individual words. The Count
-        // transform returns a new PCollection of key/value pairs, where each key represents a unique
-        // word in the text. The associated value is the occurrence count for that word.
+        // Apply a count on good words, format for output and output to goodwords file
         results.get(exceptionHandlerDoFn.mainOutput).setCoder(StringUtf8Coder.of())
-
                 .apply(Count.<String>perElement())
-
-                // Apply a MapElements transform that formats our PCollection of word counts into a printable
-                // string, suitable for writing to an output file.
                 .apply("FormatResults", via(new SimpleFunction<KV<String, Long>, String>() {
                     @Override
                     public String apply(KV<String, Long> input) {
                         return input.getKey() + ": " + input.getValue();
                     }
                 }))
-
-                // Apply a write transform, TextIO.Write, at the end of the pipeline.
-                // TextIO.Write writes the contents of a PCollection (in this case, our PCollection of
-                // formatted strings) to a series of text files.
-                //
-                // By default, it will write to a set of files with names like wordcount-00001-of-00005
                 .apply(TextIO.write().to("goodwords"));
 
-        // Output bad words from errorOutput
+        // Output bad words from errorOutput to badwords file
         results.get(exceptionHandlerDoFn.errorOutput).setCoder(StringUtf8Coder.of())
                 .apply(TextIO.write().to("badwords"));
 
