@@ -13,21 +13,25 @@ import org.apache.beam.sdk.values.TupleTag;
 import java.io.Serializable;
 
 /**
- * Created by lbourgeois on 21/06/17.
+ * Generic DoFn wrapper to handle raised exceptions
+ *  - if no exception output element is recorded to mainOutput
+ *  - if exception raised input element is recorded to errorOutput
  */
 public class ExceptionHandlerDoFn<InputT extends Serializable, OutputT extends Serializable> extends DoFn<InputT, OutputT> {
 
+    // Outputs
     public final TupleTag<OutputT> mainOutput =
             new TupleTag<OutputT>("mainOutput") {
             };
     public final TupleTag<InputT> errorOutput =
             new TupleTag<InputT>("errorOutput") {
             };
+
+    // wrappedDoFn and DoFnInvoker
     private transient DoFnInvoker fnInvoker;
     private DoFn wrappedDoFn;
 
     public ExceptionHandlerDoFn(DoFn wrappedDoFn) {
-
         super();
         this.wrappedDoFn = wrappedDoFn;
     }
@@ -35,10 +39,12 @@ public class ExceptionHandlerDoFn<InputT extends Serializable, OutputT extends S
     @ProcessElement
     public void processElement(ProcessContext processContext) {
 
+        // As DoFnInvoker is not serializable it has to be initialised lazily
         fnInvoker = DoFnInvokers.invokerFor(wrappedDoFn);
 
-
         try {
+
+            // TODO check ArgumentProvider implem
             fnInvoker.invokeProcessElement(new DoFnInvoker.ArgumentProvider<InputT, OutputT>() {
                 @Override
                 public DoFn<InputT, OutputT>.ProcessContext processContext(

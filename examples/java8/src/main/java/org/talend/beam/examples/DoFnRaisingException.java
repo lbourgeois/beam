@@ -7,7 +7,7 @@ import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.util.UserCodeException;
 
 /**
- * Created by lbourgeois on 21/06/17.
+ * Simple DoFn raising an exception when EXECPTION word encountered
  */
 public class DoFnRaisingException extends DoFn<String, String> {
     private final Counter emptyLines = Metrics.counter(DoFnRaisingException.class, "emptyLines");
