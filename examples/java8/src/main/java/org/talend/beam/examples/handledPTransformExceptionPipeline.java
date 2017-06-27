@@ -48,21 +48,20 @@ public class handledPTransformExceptionPipeline {
 
         // DoFn which raise exception when reading EXCEPTION word
         PTransformRaisingException pTransformRaisingException = new PTransformRaisingException();
+        ExceptionHandlerPTransform exceptionHandlerPTransform = new ExceptionHandlerPTransform(pTransformRaisingException);
 
         // Apply the PTransform on the sample data with 2 outputs : one for the good words and one for the bad words (when exception raised)
-        PCollection results = null;
-
-        try {
-            results = p.apply("Create", Create.of(LINES)).setCoder(StringUtf8Coder.of())
-                    .apply("ExtractWords", pTransformRaisingException);
-        } catch (Exception e) {
-            //TODO
-        }
+        PCollection<String> results = p.apply("Create", Create.of(LINES)).setCoder(StringUtf8Coder.of())
+                .apply("ExtractWords", exceptionHandlerPTransform);
 
         results.setCoder(StringUtf8Coder.of())
                 .apply(TextIO.write().to("ptransformout"));
 
-        // Run the pipeline.
+//        Run the pipeline.
+        try {
         p.run().waitUntilFinish();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
     }
 }
