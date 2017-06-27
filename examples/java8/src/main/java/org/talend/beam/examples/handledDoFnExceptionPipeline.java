@@ -57,12 +57,12 @@ public class handledDoFnExceptionPipeline {
                 "The slings and arrows of outrageous fortune, ",
                 "Or to take arms against a sea of troubles, ");
 
-        // DoFn which raise exception when reading EXCEPTION word
+        // DoFnRaisingException raises exception when reading EXCEPTION word
         ExceptionHandlerDoFn<String, String> exceptionHandlerDoFn = new ExceptionHandlerDoFn<String, String>(new DoFnRaisingException());
 
         // Apply the DoFn on the sample data with 2 outputs : one for the good words and one for the bad words (when exception raised)
         PCollectionTuple results = p.apply("Create", Create.of(LINES)).setCoder(StringUtf8Coder.of())
-                .apply("ExtractWords", ParDo.of(new ExceptionHandlerDoFn<String, String>(new DoFnRaisingException()))
+                .apply("ExtractWords", ParDo.of(exceptionHandlerDoFn)
                         .withOutputTags(exceptionHandlerDoFn.mainOutput, TupleTagList.of(exceptionHandlerDoFn.errorOutput)));
 
         // Apply a count on good words, format for output and output to goodwords file
