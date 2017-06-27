@@ -58,10 +58,10 @@ public class handledPTransformExceptionPipeline {
                 .apply(TextIO.write().to("ptransformout"));
 
 //        Run the pipeline.
-        try {
+//        try {
         p.run().waitUntilFinish();
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
+//        } catch (Exception e) {
+//            System.out.println(e.getMessage());
+//        }
     }
 }

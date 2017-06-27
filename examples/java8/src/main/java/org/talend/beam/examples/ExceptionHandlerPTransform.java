@@ -19,7 +19,7 @@ public class ExceptionHandlerPTransform extends PTransform<PCollection<String>, 
         PCollection<String> result = null;
         try {
             result = wrappedPTransform.expand(input);
-        } catch (Exception ise) {
+        } catch (IllegalStateException ise) {
             System.out.println("Illegal state exception caught");
         }
         return result;
